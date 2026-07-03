@@ -46,7 +46,7 @@
     </div>
 
     <script>
-        const API_URL = "YOUR_API_URL_HERE";
+        const API_URL = "https://script.google.com/macros/s/AKfycbyww_0wNWbcETpSHK4eQMYeU6y8Xg5ajN_FpUuL3AK5bAi1immrg2AH6lCbvtNKd3ZmsQ/exec";
 
         function getRankColor(rank, totalPlayers) {
             const ratio = (rank - 1) / Math.max(totalPlayers - 1, 1);
@@ -68,8 +68,35 @@
 
         async function loadLeaderboard() {
             try {
-                const response = await fetch('https://script.google.com/macros/s/AKfycbyww_0wNWbcETpSHK4eQMYeU6y8Xg5ajN_FpUuL3AK5bAi1immrg2AH6lCbvtNKd3ZmsQ/exec');
-                const players = await response.json();
+                const response = await fetch(API_URL);
+                let players = await response.json();
+
+                // Convert to numbers (important if sheet returns strings)
+                players = players.map(player => ({
+                    ...player,
+                    points: Number(player.points),
+                    correct: Number(player.correct)
+                }));
+
+                // Sort by points descending
+                players.sort((a, b) => b.points - a.points);
+
+                // Tie-aware ranking
+                let previousPoints = null;
+                let currentRank = 0;
+
+                players = players.map((player, index) => {
+                    if (player.points !== previousPoints) {
+                        currentRank = index + 1;
+                    }
+
+                    previousPoints = player.points;
+
+                    return {
+                        ...player,
+                        rank: currentRank
+                    };
+                });
 
                 const tableBody = document.getElementById("tableBody");
                 tableBody.innerHTML = "";
@@ -83,31 +110,34 @@
                     const rankColor = getRankColor(player.rank, totalPlayers);
 
                     row.innerHTML = `
-                        <td class="border border-slate-600 p-2 text-center font-bold"
-                            style="background:${rankColor}; color:black;">
-                            ${player.rank}
-                        </td>
-                        <td class="border border-slate-600 p-2">
-                            ${player.name}
-                        </td>
-                        <td class="border border-slate-600 p-2 text-center">
-                            ${player.correct}
-                        </td>
-                        <td class="border border-slate-600 p-2 text-center font-semibold">
-                            ${player.points}
-                        </td>
-                    `;
+                <td class="border border-slate-600 p-4 text-center font-bold"
+                    style="background:${rankColor}; color:black;">
+                    ${player.rank}
+                </td>
+                <td class="border border-slate-600 p-4">
+                    ${player.name}
+                </td>
+                <td class="border border-slate-600 p-4 text-center">
+                    ${player.correct}
+                </td>
+                <td class="border border-slate-600 p-4 text-center font-semibold">
+                    ${player.points}
+                </td>
+            `;
 
                     tableBody.appendChild(row);
                 });
+
             } catch (error) {
-                console.error("Error loading leaderboard:", error);
+                console.error("Leaderboard error:", error);
             }
         }
 
         loadLeaderboard();
 
+        // Auto refresh every 10 sec
         setInterval(loadLeaderboard, 10000);
     </script>
 </body>
+
 </html>
