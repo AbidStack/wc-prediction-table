@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Point Table</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-6">
+
+  <div class="w-full max-w-3xl bg-white shadow-lg rounded-lg overflow-hidden border border-orange-300">
+    
+    <!-- Title -->
+    <div class="text-center text-4xl font-bold py-4 border-b border-orange-300">
+      Point Table
+    </div>
+
+    <!-- Total Prediction -->
+    <div class="grid grid-cols-2 border-b border-orange-300">
+      <div class="text-2xl font-semibold p-3 border-r border-orange-300 text-center">
+        Total Prediction
+      </div>
+      <div id="totalPrediction" class="text-2xl font-bold p-3 text-center">
+        9
+      </div>
+    </div>
+
+    <!-- Table -->
+    <table class="w-full text-xl">
+      <thead>
+        <tr class="border-b border-orange-300">
+          <th class="p-3 w-20"></th>
+          <th class="p-3 text-left">Name</th>
+          <th class="p-3 text-center">Correct Prediction 🔮</th>
+          <th class="p-3 text-center">Points</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+
+  <script>
+    const players = [
+      { rank: 1, name: "Saleh", correct: 3, points: 12 },
+      { rank: 2, name: "Abid", correct: 2, points: 11 },
+      { rank: 3, name: "Jubayer", correct: 2, points: 10 },
+      { rank: 4, name: "Mahadi", correct: 1, points: 9 },
+      { rank: 5, name: "Didar", correct: 1, points: 6 },
+      { rank: 5, name: "Mahdi", correct: 1, points: 6 },
+      { rank: 7, name: "Dihan", correct: 0, points: 4 },
+      { rank: 8, name: "Akram", correct: 0, points: 3 }
+    ];
+
+    const tableBody = document.getElementById("tableBody");
+
+    function getRankColor(rank) {
+      if (rank <= 3) return "bg-green-300";
+      if (rank <= 6) return "bg-yellow-300";
+      return "bg-red-300";
+    }
+
+    players.forEach(player => {
+      const row = document.createElement("tr");
+      row.className = "border-b";
+
+      row.innerHTML = `
+        <td class="p-3 text-center font-bold ${getRankColor(player.rank)}">
+          ${player.rank}
+        </td>
+        <td class="p-3">${player.name}</td>
+        <td class="p-3 text-center">${player.correct}</td>
+        <td class="p-3 text-center">${player.points}</td>
+      `;
+
+      tableBody.appendChild(row);
+    });
+  </script>
+</body>
+</html>
