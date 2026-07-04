@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FIFA WC 2026 Prediction Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-slate-950 text-white min-h-screen p-6">
+    <div class="max-w-7xl mx-auto">
+
+        <h1 class="text-4xl font-bold text-center mb-8">
+            FIFA WC 2026 Prediction Dashboard
+        </h1>
+
+        <!-- Dropdowns -->
+        <div class="grid md:grid-cols-2 gap-4 mb-8">
+            <select id="roundSelect" class="bg-slate-800 border border-slate-600 rounded-lg px-4 py-3">
+            </select>
+
+            <select id="matchSelect" class="bg-slate-800 border border-slate-600 rounded-lg px-4 py-3">
+            </select>
+        </div>
+
+        <!-- Match Card -->
+        <div id="matchCard"></div>
+
+        <!-- Prediction Cards -->
+        <h2 class="text-3xl font-bold mt-10 mb-5">Predictions</h2>
+        <div id="predictions" class="grid gap-5"></div>
+
+    </div>
+
+    <script>
+        const API_URL = "https://worldcup26.ir/get/games";
+
+        let allMatches = [];
+
+        function parseScorers(str) {
+            if (!str || str === "null") return [];
+            return str
+                .replace(/[{}"]/g, "")
+                .split(",")
+                .map(x => x.trim())
+                .filter(Boolean);
+        }
+
+        function getRoundLabel(type) {
+            const map = {
+                r32: "Round of 32",
+                r16: "Round of 16",
+                qf: "Quarter Final",
+                sf: "Semi Final",
+                final: "Final"
+            };
+            return map[type] || type;
+        }
+
+        function renderRoundDropdown(matches) {
+            const roundSelect = document.getElementById("roundSelect");
+            const rounds = [...new Set(matches.map(m => m.type))];
+
+            roundSelect.innerHTML = rounds.map(r => `
+        <option value="${r}">${getRoundLabel(r)}</option>
+    `).join("");
+
+            roundSelect.addEventListener("change", renderMatchDropdown);
+
+            renderMatchDropdown();
+        }
+
+        function renderMatchDropdown() {
+            const round = document.getElementById("roundSelect").value;
+            const matchSelect = document.getElementById("matchSelect");
+
+            const filtered = allMatches.filter(m => m.type === round);
+
+            matchSelect.innerHTML = filtered.map((match, index) => `
+        <option value="${match.id}">
+            Match ${index + 1} — ${match.home_team_name_en} vs ${match.away_team_name_en}
+        </option>
+    `).join("");
+
+            matchSelect.onchange = renderMatchCard;
+            renderMatchCard();
+        }
+
+        function renderMatchCard() {
+            const matchId = document.getElementById("matchSelect").value;
+            const match = allMatches.find(m => m.id === matchId);
+            if (!match) return;
+
+            const homeScorers = parseScorers(match.home_scorers);
+            const awayScorers = parseScorers(match.away_scorers);
+
+            const penaltyExists =
+                match.home_penalty_score !== "null" &&
+                match.away_penalty_score !== "null";
+
+            document.getElementById("matchCard").innerHTML = `
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl p-6 shadow-xl">
+            <div class="text-center mb-6">
+                <div class="text-sm text-slate-400">${getRoundLabel(match.type)}</div>
+                <div class="text-3xl font-bold mt-2">
+                    ${match.home_team_name_en}
+                    <span class="text-blue-400 mx-3">${match.home_score}-${match.away_score}</span>
+                    ${match.away_team_name_en}
+                </div>
+                <div class="text-slate-400 mt-2">${match.local_date}</div>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-6">
+                <div class="bg-slate-800 rounded-xl p-4">
+                    <h3 class="font-bold mb-3">${match.home_team_name_en} Scorers</h3>
+                    ${homeScorers.length ? homeScorers.map(s => `<div>${s}</div>`).join("") : "None"}
+                </div>
+
+                <div class="bg-slate-800 rounded-xl p-4">
+                    <h3 class="font-bold mb-3">${match.away_team_name_en} Scorers</h3>
+                    ${awayScorers.length ? awayScorers.map(s => `<div>${s}</div>`).join("") : "None"}
+                </div>
+            </div>
+
+${penaltyExists
+                    ? `
+<div class="mt-6 bg-amber-900/40 border border-amber-500 rounded-xl p-5">
+    
+    <div class="text-2xl font-bold text-center mb-4">
+        Penalty Shootout
+    </div>
+
+    <div class="text-center text-xl mb-5">
+        ${match.home_team_name_en}
+        <span class="mx-3 font-bold text-yellow-300">
+            ${match.home_penalty_score} - ${match.away_penalty_score}
+        </span>
+        ${match.away_team_name_en}
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-4">
+
+        <div class="bg-slate-800 rounded-lg p-4">
+            <div class="font-bold mb-3 text-green-400">
+                ${match.home_team_name_en} Penalty Scorers
+            </div>
+            ${parseScorers(match.home_penalty_scorers)
+                        .map(name => `<div>✓ ${name}</div>`)
+                        .join("") || "None"
+                    }
+
+            ${match.home_penalty_misses !== "null"
+                        ? `
+                <div class="mt-3 text-red-400">
+                    Missed:
+                    ${parseScorers(match.home_penalty_misses).join(", ")}
+                </div>
+                `
+                        : ""
+                    }
+        </div>
+
+        <div class="bg-slate-800 rounded-lg p-4">
+            <div class="font-bold mb-3 text-green-400">
+                ${match.away_team_name_en} Penalty Scorers
+            </div>
+            ${parseScorers(match.away_penalty_scorers)
+                        .map(name => `<div>✓ ${name}</div>`)
+                        .join("") || "None"
+                    }
+
+            ${match.away_penalty_misses !== "null"
+                        ? `
+                <div class="mt-3 text-red-400">
+                    Missed:
+                    ${parseScorers(match.away_penalty_misses).join(", ")}
+                </div>
+                `
+                        : ""
+                    }
+        </div>
+
+    </div>
+</div>
+`
+                    : ""
+                }
+        </div>
+    `;
+        }
+
+        function renderDummyPredictions() {
+            const predictions = [
+                {
+                    name: "Saleh",
+                    result: "2-1",
+                    scorers: ["Messi", "Neymar", "Mbappe"],
+                    penalty: "No"
+                },
+                {
+                    name: "Abid",
+                    result: "1-1",
+                    scorers: ["Messi", "Vini"],
+                    penalty: "3-4"
+                },
+                {
+                    name: "Jubayer",
+                    result: "3-0",
+                    scorers: ["Mbappe", "Messi", "Haaland"],
+                    penalty: "No"
+                }
+            ];
+
+            document.getElementById("predictions").innerHTML =
+                predictions.map(p => `
+            <div class="bg-slate-900 border border-slate-700 rounded-xl p-5">
+                <div class="text-2xl font-bold mb-3">${p.name}</div>
+                <div>Prediction Result: <b>${p.result}</b></div>
+                <div class="mt-2">Scorers: ${p.scorers.join(", ")}</div>
+                <div class="mt-2">Penalty: ${p.penalty}</div>
+            </div>
+        `).join("");
+        }
+
+        async function loadMatches() {
+            try {
+                const response = await fetch(API_URL);
+                const data = await response.json();
+
+                if (!data.games) {
+                    throw new Error("Unexpected API shape");
+                }
+
+                allMatches = data.games.filter(m =>
+                    ["r32", "r16", "qf", "sf", "final"].includes(m.type)
+                );
+
+                renderRoundDropdown(allMatches);
+                renderDummyPredictions();
+            }
+            catch (err) {
+                document.getElementById("matchCard").innerHTML = `
+            <div class="bg-red-900 rounded-xl p-5 text-center">
+                Failed to load API.
+                <br><br>
+                ${err.message}
+                <br><br>
+                Very likely CORS blocked browser request.
+            </div>
+        `;
+            }
+        }
+
+        loadMatches();
+    </script>
+</body>
+
+</html>
